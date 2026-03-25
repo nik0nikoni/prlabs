@@ -50,4 +50,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: pupozzy228/chatbot-backend:latest
+          tags: pupozzy228/chatbot-backend:latest 
