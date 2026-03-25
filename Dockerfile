@@ -1,0 +1,9 @@
+FROM python:3.12-slim
+
+WORKDIR /code
+
+COPY Pipfile Pipfile.lock /code/
+
+RUN pip install pipenv && pipenv install --system --deploy
+
+COPY . /code/

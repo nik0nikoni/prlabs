@@ -1,0 +1,28 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🐳 Build containers
+      run: docker compose build
+
+    - name: 🚀 Run containers
+      run: docker compose up -d
+
+    - name: ⏳ Wait for backend to start
+      run: sleep 10
+
+    - name: 🔍 Check backend health
+      run: curl --fail http://localhost:8000/health
+
+    - name: 🧹 Stop containers
+      run: docker compose down
