@@ -9,45 +9,73 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Скачать код
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Собрать контейнеры
-      - name: Build containers
-        run: docker compose build
+      - name: Create Docker network
+        run: docker network create chatbot-network
 
-      # 3. Запустить контейнеры
-      - name: Run containers
-        run: docker compose up -d
+      - name: Run PostgreSQL container
+        run: |
+          docker run -d \
+            --name db \
+            --network chatbot-network \
+            -e POSTGRES_DB=todo \
+            -e POSTGRES_USER=todo \
+            -e POSTGRES_PASSWORD=todo \
+            postgres:15
 
-      # 4. Подождать запуск
+      - name: Build backend image
+        run: docker build -f Dockerfile.backend -t chatbot-backend .
+
+      - name: Build bot image
+        run: docker build -f Dockerfile.bot -t chatbot-bot .
+
+      - name: Run backend container
+        run: |
+          docker run -d \
+            --name backend \
+            --network chatbot-network \
+            -p 8000:8000 \
+            chatbot-backend
+
+      - name: Run bot container
+        run: |
+          docker run -d \
+            --name bot \
+            --network chatbot-network \
+            chatbot-bot
+
       - name: Wait for backend
         run: sleep 10
 
-      # 5. Проверка (CI)
       - name: Check backend health
         run: curl --fail http://localhost:8000/health
 
-      # 6. Остановить контейнеры
-      - name: Stop containers
-        run: docker compose down
+      - name: Stop and remove containers
+        if: always()
+        run: |
+          docker rm -f bot backend db || true
+          docker network rm chatbot-network || true
 
-      # =====================
-      # 🔥 CD ЧАСТЬ
-      # =====================
-
-      # 7. Логин в Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 8. Сборка и push образа
-      - name: Build and push image
+      - name: Build and push backend image
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: ./Dockerfile.backend
           push: true
-          tags: pupozzy228/chatbot-backend:latest 
+          tags: pupozzy228/chatbot-backend:latest
+
+      - name: Build and push bot image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.bot
+          push: true
+          tags: pupozzy228/chatbot-bot:latest

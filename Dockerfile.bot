@@ -7,3 +7,5 @@ COPY Pipfile Pipfile.lock /code/
 RUN pip install pipenv && pipenv install --system --deploy
 
 COPY . /code/
+
+CMD ["python", "-m", "app.bot.bot"]
